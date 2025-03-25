@@ -9,6 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.nikhilhere.streambox.mediaencoder.base.MediaEncoderException
+import com.nikhilhere.streambox.mediaencoder.base.MediaEncoderListener
+import com.nikhilhere.streambox.mediaencoder.base.MediaEncoderOutput
+import com.nikhilhere.streambox.mediaencoder.base.MediaEncoderState
+import com.nikhilhere.streambox.mediaencoder.videoencoder.VideoEncoder
 import com.nikhilhere.streambox.mediasource.base.MediaSourceException
 import com.nikhilhere.streambox.mediasource.base.MediaSourceListener
 import com.nikhilhere.streambox.mediasource.base.MediaSourceOutput
@@ -21,6 +26,7 @@ private const val TAG = "MainScreen"
 fun MainScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
     val cameraSource = remember {
         CameraSource(
             context = context,
@@ -28,31 +34,54 @@ fun MainScreen(modifier: Modifier = Modifier) {
         )
     }
 
+    val videoEncoder = remember {
+        VideoEncoder()
+    }
+
     LaunchedEffect(true) {
-        cameraSource.addListener(
-            object : MediaSourceListener {
-                override fun onOutput(output: MediaSourceOutput) {
-                    Log.i(TAG, "onOutput: $output")
-                }
-
-                override fun onError(exception: MediaSourceException) {
-                    Log.e(TAG, "onError: $exception", exception)
-                }
-
-                override fun onState(state: MediaSourceState) {
-                    Log.i(TAG, "onState: $state")
-                }
-
+        cameraSource.initialize()
+        videoEncoder.initialize(
+            format = VideoEncoder.getDefaultFormat(),
+            setSourceListener = {
+                cameraSource.addListener(it)
             }
         )
-        cameraSource.initialize()
+    }
+
+    //For Debugging
+    LaunchedEffect(true) {
+        cameraSource.addListener(object : MediaSourceListener {
+            override fun onOutput(output: MediaSourceOutput) {
+                Log.i(TAG, "cameraSource onOutput: $output ")
+            }
+
+            override fun onError(exception: MediaSourceException) {
+                Log.e(TAG, "cameraSource onError: $exception", exception)
+            }
+
+            override fun onState(state: MediaSourceState) {
+                Log.i(TAG, "cameraSource onState: $state")
+            }
+        })
+
+        videoEncoder.addListener(object : MediaEncoderListener {
+            override fun onOutput(output: MediaEncoderOutput) {
+                Log.i(TAG, "videoEncoder onOutput: $output")
+            }
+
+            override fun onError(exception: MediaEncoderException) {
+                Log.e(TAG, "videoEncoder onError: $exception", exception)
+            }
+
+            override fun onState(state: MediaEncoderState) {
+                Log.i(TAG, "videoEncoder onState: $state")
+            }
+        })
     }
 
     cameraSource.getPreview()?.preview?.let { preview ->
         AndroidView(
-            factory = {
-                preview
-            },
+            factory = { preview },
             modifier = modifier
         )
     }
