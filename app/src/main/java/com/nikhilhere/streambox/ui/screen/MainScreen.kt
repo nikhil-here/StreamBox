@@ -19,6 +19,8 @@ import com.nikhilhere.streambox.mediasource.base.MediaSourceListener
 import com.nikhilhere.streambox.mediasource.base.MediaSourceOutput
 import com.nikhilhere.streambox.mediasource.base.MediaSourceState
 import com.nikhilhere.streambox.mediasource.camerasource.CameraSource
+import com.nikhilhere.streambox.mediastreamer.base.MediaStreamInfo
+import com.nikhilhere.streambox.mediastreamer.rtmpstreamer.RtmpStreamer
 
 private const val TAG = "MainScreen"
 
@@ -38,12 +40,25 @@ fun MainScreen(modifier: Modifier = Modifier) {
         VideoEncoder()
     }
 
+    val rtmpStreamer = remember {
+        RtmpStreamer()
+    }
+
     LaunchedEffect(true) {
         cameraSource.initialize()
         videoEncoder.initialize(
             format = VideoEncoder.getDefaultFormat(),
             setSourceListener = {
                 cameraSource.addListener(it)
+            }
+        )
+        rtmpStreamer.initialize(
+            streamInfo = MediaStreamInfo(
+                host = "192.168.0.105",
+                port = 1935
+            ),
+            setEncoderListener = {
+                videoEncoder.addListener(it)
             }
         )
     }
